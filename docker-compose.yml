@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  nextjs:
+    build: ./nextjs
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./nextjs/.env.local
+    depends_on:
+      - producer
+
+  producer:
+    build: ./producer
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./config.env
+    depends_on:
+      - worker
+
+  worker:
+    build: ./worker
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./config.env

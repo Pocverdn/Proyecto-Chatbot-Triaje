@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    image: gcr.io/${GCP_PROJECT_ID}/${BACKEND_SERVICE}
+    env:
+      - SPRING_PROFILES_ACTIVE=prod
+    cloudrun:
+      service: ${BACKEND_SERVICE}
+      region: ${REGION}
+      allow-unauthenticated: true
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: https://${BACKEND_SERVICE}-${REGION}-a.run.app
+    image: gcr.io/${GCP_PROJECT_ID}/${FRONTEND_SERVICE}
+    cloudrun:
+      service: ${FRONTEND_SERVICE}
+      region: ${REGION}
+      allow-unauthenticated: true
