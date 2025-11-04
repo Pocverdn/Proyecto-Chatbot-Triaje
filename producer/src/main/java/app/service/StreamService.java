@@ -43,29 +43,28 @@ public class StreamService {
      * Sends a streaming token to the user's emitter.
      */
     public void sendToken(String userId, String token) {
-        SseEmitter emitter = emitters.get(userId);
-        if (emitter != null) {
-            try {
-                System.out.println("📤 Sending token to user " + userId + ": " + token);
-                emitter.send(SseEmitter.event()
-                        .name("message")
-                        .data(token));
-            } catch (IOException e) {
-                System.out.println("⚠️ Error sending token to " + userId + ": " + e.getMessage());
-                emitter.completeWithError(e);
-                emitters.remove(userId);
-            }
-        } else {
-            System.out.println("🚫 No active emitter for user " + userId + " (token not sent)");
+    SseEmitter emitter = emitters.get(userId);
+    if (emitter != null) {
+        try {
+            // Encode space-only tokens safely
+            String safeToken = token.replace(" ", "\u00A0"); // non-breaking space
+            emitter.send(SseEmitter.event()
+                    .name("message")
+                    .data(safeToken));
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+            emitters.remove(userId);
         }
     }
+}
+
 
     /**
      * Completes the stream and removes the emitter.
      */
     public void complete(String userId) {
         SseEmitter emitter = emitters.get(userId);
-        if (emitter != null) {
+        // if (emitter != null) {
             try {
                 System.out.println("✅ Completing SSE stream for user: " + userId);
                 emitter.send(SseEmitter.event()
@@ -76,8 +75,8 @@ public class StreamService {
             } catch (IOException e) {
                 System.out.println("⚠️ Error completing stream for " + userId + ": " + e.getMessage());
             }
-        } else {
-            System.out.println("🚫 Tried to complete, but no emitter found for " + userId);
-        }
+        // } else {
+        //     System.out.println("🚫 Tried to complete, but no emitter found for " + userId);
+        // }
     }
 }

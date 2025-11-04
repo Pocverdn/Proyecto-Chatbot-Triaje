@@ -71,49 +71,63 @@ export default function Chat() {
 
   // Listen for streaming messages via SSE
   function startStreaming() {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    setIsStreaming(true);
-    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/chat/stream/${userId}`;
-    const es = new EventSource(url, { withCredentials: false });
-
-    let partial = "";
-
-    es.onmessage = (event) => {
-      console.log("💬 Message event:", event.data);
-      partial += event.data + " "; // Add space between tokens
-
-      setMessages((prev) => {
-        const updated = [...prev];
-        if (updated.length && updated[updated.length - 1].role === "assistant") {
-          updated[updated.length - 1].content = partial;
-        } else {
-          updated.push({ role: "assistant", content: partial });
-        }
-        return updated;
-      });
-    };
-
-    es.addEventListener("done", () => {
-      console.log("✅ Stream complete (done event)");
-      es.close();
-      setIsStreaming(false);
-    });
-
-    es.onerror = () => {
-      console.error("❌ SSE connection error");
-      es.close();
-      eventSourceRef.current = null;
-      setIsStreaming(false);
-    };
-
-    es.onopen = () => console.log("🟢 Connected to SSE stream");
-
-    eventSourceRef.current = es;
+  if (eventSourceRef.current) {
+    eventSourceRef.current.close();
+    eventSourceRef.current = null;
   }
+
+  setIsStreaming(true);
+  const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/chat/stream/${userId}`;
+  const es = new EventSource(url, { withCredentials: false });
+
+  let partial = "";
+  let inactivityTimeout;
+
+  // Function to close the connection after 3 seconds of inactivity
+  const closeConnectionAfterTimeout = () => {
+    console.log("❌ Closing connection due to inactivity");
+    es.close();
+    setIsStreaming(false);
+    eventSourceRef.current = null;
+  };
+
+  es.onmessage = (event) => {
+    console.log("💬 Message event:", event.data);
+    partial += event.data + " "; // Add space between tokens
+
+    // Clear the previous timeout and set a new one whenever a new message is received
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(closeConnectionAfterTimeout, 3000); // 3 seconds timeout
+
+    setMessages((prev) => {
+      const updated = [...prev];
+      if (updated.length && updated[updated.length - 1].role === "assistant") {
+        updated[updated.length - 1].content = partial;
+      } else {
+        updated.push({ role: "assistant", content: partial });
+      }
+      return updated;
+    });
+  };
+
+  es.addEventListener("done", () => {
+    console.log("✅ Stream complete (done event)");
+    es.close();
+    setIsStreaming(false);
+  });
+
+  es.onerror = () => {
+    console.error("❌ SSE connection error");
+    es.close();
+    eventSourceRef.current = null;
+    setIsStreaming(false);
+  };
+
+  es.onopen = () => console.log("🟢 Connected to SSE stream");
+
+  eventSourceRef.current = es;
+}
+
 
   return (
     <div className="p-4 max-w-xl mx-auto">

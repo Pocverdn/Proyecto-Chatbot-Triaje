@@ -95,15 +95,6 @@ public class ProcessListener {
                                 assistantMsg.setContent(fullReply.toString());
                                 assistantMsg.setCreatedAt(Instant.now());
                                 repo.save(assistantMsg);
-
-                                // Notify producer that stream is complete
-                                rabbitTemplate.convertAndSend(streamQueueName, 
-                                Map.of(
-                                        "userId", userId,
-                                        "event", "complete",
-                                        "content", "t"
-                                ));
-
                                 // Also replicate to database exchange
                                 rabbitTemplate.convertAndSend(
                                         RabbitConfig.REPL_EXCHANGE,
@@ -116,6 +107,16 @@ public class ProcessListener {
                                                 "createdAt", assistantMsg.getCreatedAt().toString()
                                         )
                                 );
+                                // Notify producer that stream is complete
+                                rabbitTemplate.convertAndSend(streamQueueName, 
+                                Map.of(
+                                        "userId", userId,
+                                        "event", "complete",
+                                        "content", "t"
+                                ));
+
+                                
+                                
                             }
                         }
                     })

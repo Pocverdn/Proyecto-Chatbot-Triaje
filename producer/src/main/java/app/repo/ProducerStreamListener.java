@@ -26,14 +26,23 @@ public class ProducerStreamListener {
         String event = (String) payload.get("event");
         String content = (String) payload.get("content");
 
-        //if (userId == null || event == null) return;
-        switch (event) {
-            case "token" -> {
-                //if (content != null) 
-                streamService.sendToken(userId, content);
-            }
-            case "complete" -> streamService.complete(userId);
+        // Ensure that we skip any unrecognized events
+        if (event == null || (!event.equals("token") && !event.equals("complete"))) {
+            return;  // Skip to the next one
         }
+
+        switch (event) {
+    case "token" -> {
+        if (content != null) {
+            streamService.sendToken(userId, content);
+        }
+    }
+    case "complete" -> streamService.complete(userId);
+    default -> {
+        // Anything else just gets skipped or logged
+        System.out.println("⚠️ Unknown event type: " + event);
     }
 }
 
+    }
+}
